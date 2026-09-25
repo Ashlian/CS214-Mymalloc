@@ -1,17 +1,33 @@
 CC = gcc
-CFLAGS = -std=c99 -g -Wall -fsanitize=address,undefined
+CFLAGS = -std=c99 -g -Wall -fsanitize=address,undefined -Iinclude
 
-memtest: memtest.o mymalloc.o
-		$(CC) $(CFLAGS) memtest.o mymalloc.o -o memtest
+all: build/memtest build/memgrind
 
-mymalloc.o: mymalloc.c mymalloc.h
-		$(CC) $(CFLAGS) -c mymalloc.c
+build:
+	mkdir -p build
 
-memtest.o: memtest.c mymalloc.h
-		$(CC) $(CFLAGS) -c memtest.c
+build/mymalloc.o: src/mymalloc.c include/mymalloc.h | build
+	$(CC) $(CFLAGS) -c src/mymalloc.c -o build/mymalloc.o
 
-memgrind.o: memgrind.c mymalloc.h
-		$(CC) $(CFLAGS) -c memgrind.o
+build/memtest.o: tests/memtest.c include/mymalloc.h | build
+	$(CC) $(CFLAGS) -c tests/memtest.c -o build/memtest.o
+
+build/memgrind.o: tests/memgrind.c include/mymalloc.h | build
+	$(CC) $(CFLAGS) -c tests/memgrind.c -o build/memgrind.o
+
+build/memtest: build/memtest.o build/mymalloc.o
+	$(CC) $(CFLAGS) build/memtest.o build/mymalloc.o -o build/memtest
+
+build/memgrind: build/memgrind.o build/mymalloc.o
+	$(CC) $(CFLAGS) build/memgrind.o build/mymalloc.o -o build/memgrind
+
+test: build/memtest
+	./build/memtest
+
+run: build/memgrind
+	./build/memgrind
 
 clean:
-		rm -f *.0 memtest
+	rm -rf build
+
+.PHONY: all test run clean
